@@ -1,0 +1,89 @@
+version: "3.7"
+
+services:
+    # image project
+    app:
+        container_name: senior_api-app
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: especializati/laravel9-app
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - redis
+        networks:
+            - laravel-9
+
+    # nginx
+    nginx:
+        container_name: senior_api-nginx
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - "9292:80"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
+        depends_on:
+            - app
+        networks:
+            - laravel-9
+        
+
+            # db mysql
+    #mysql:
+    #     container_name: especializati-mysql
+    #    image: mysql:5.7.22
+    #    restart: unless-stopped
+    #    environment:
+    #        MYSQL_DATABASE: ${DB_DATABASE}
+    #        MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    #        MYSQL_PASSWORD: ${DB_PASSWORD}
+    #        MYSQL_USER: ${DB_USERNAME}
+    #    volumes:
+    #        - ./.docker/mysql/dbdata:/var/lib/mysql
+    #    ports:
+    #        - "3388:3306"
+    #    networks:
+    #        - laravel-9
+            
+    # # db oracle
+    # database:
+    #     image: oracle/database:18.3.0-ee
+    #     volumes:
+    #     - /home/oracle/oradata:/opt/oracle/oradata  # persistent oracle database data.
+    #     ports:
+    #     - 1521:1521
+    #     networks:
+    #         - laravel-9
+    #     depends_on:
+    #             - app
+    #             - redis
+
+    # queue
+    queue:
+        container_name: senior_api-queue
+        image: especializati/laravel9-app
+        restart: unless-stopped
+        command: "php artisan queue:work"
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - redis
+            - app
+        networks:
+            - laravel-9
+
+    # redis
+    redis:
+        container_name: senior_api-redis
+        image: redis:latest
+        networks:
+            - laravel-9
+            
+networks:
+    laravel-9:
+        driver: bridge
